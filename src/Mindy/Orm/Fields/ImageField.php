@@ -5,6 +5,7 @@ namespace Mindy\Orm\Fields;
 use Exception;
 use Imagine\Image\ImageInterface;
 use Imagine\Image\Point;
+use Mindy\Base\Mindy;
 use Mindy\Orm\Traits\ImageProcess;
 use Mindy\Storage\Files\File;
 use Mindy\Storage\FileSystemStorage;
@@ -19,6 +20,9 @@ class ImageField extends FileField
 {
     use ImageProcess;
 
+    protected $availableResizeMethods = [
+        'resize', 'adaptiveResize', 'adaptiveResizeFromTop'
+    ];
     /**
      * Array with image sizes
      * key 'original' is reserved!
@@ -99,6 +103,7 @@ class ImageField extends FileField
     public function setFile(File $file, $name = null)
     {
         $name = $name ? $name : $file->name;
+
         if ($this->MD5Name) {
             $ext = pathinfo($name, PATHINFO_EXTENSION);
             $name = md5(str_replace("." . $ext, "", $name)) . '.' . $ext;
@@ -112,6 +117,9 @@ class ImageField extends FileField
                 try {
                     $image = $this->getImagine()->load($fileContent);
                 } catch (Exception $e) {
+                    Mindy::app()->logger->error($e->getMessage(), [
+                        'line' => $e->getLine(),
+                    ]);
                     $image = null;
                 }
                 if ($image) {
@@ -159,6 +167,9 @@ class ImageField extends FileField
                 list($width, $height) = $this->imageScale($source, $width, $height);
             }
             $method = isset($size['method']) ? $size['method'] : $this->defaultResize;
+            if (!in_array($method, $this->availableResizeMethods)) {
+                throw new Exception('Unknown resize method: ' . $method);
+            }
             $options = isset($size['options']) ? $size['options'] : $this->options;
 
             $watermark = isset($size['watermark']) ? $size['watermark'] : $this->watermark;
@@ -262,7 +273,7 @@ class ImageField extends FileField
             foreach ($this->sizes as $name => $params) {
                 $sizes[$name] = $this->sizeUrl($name);
             }
-            $sizes['original'] = $this->getStorage()->url($this->getValue());
+            $sizes['original'] = $this->getUrl();
         }
         return $sizes;
     }
@@ -284,6 +295,11 @@ class ImageField extends FileField
         }
 
         return $newPrefix;
+    }
+
+    public function getUrl()
+    {
+        return $this->getStorage()->url($this->getValue());
     }
 
     public function getFormField($form, $fieldClass = '\Mindy\Form\Fields\ImageField', array $extra = [])

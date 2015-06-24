@@ -339,7 +339,11 @@ abstract class Field implements IValidateField
 
     public function toArray()
     {
-        return $this->getValue();
+        $value = $this->getValue();
+        if ($value && !empty($this->choices)) {
+            $value = $this->choices[$value];
+        }
+        return $value;
     }
 
     abstract public function sqlType();
