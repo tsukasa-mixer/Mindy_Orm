@@ -249,9 +249,10 @@ class ManyToManyField extends RelatedField
         $value = $this->preformatValue($value);
         $class = $this->modelClass;
         $manager = $this->getManager();
-        if (!$this->through) {
+        // TODO tmp fix for project only. See https://github.com/studio107/Mindy_Orm/issues/119
+        // if (!$this->through) {
             $manager->clean();
-        }
+        // }
         foreach ($value as $linkModel) {
             if (!is_a($linkModel, $this->modelClass)) {
                 $linkModel = $class::objects()->get(['pk' => $linkModel]);
